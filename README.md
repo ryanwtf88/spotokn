@@ -1,4 +1,4 @@
-# Spotokn - Enhanced Spotify Token Service
+# Spotokn
 
 A high-performance Spotify token service with real-time monitoring, enhanced error handling, and LavaSrc-inspired token tracking logic.
 
@@ -13,39 +13,6 @@ A high-performance Spotify token service with real-time monitoring, enhanced err
 - **Browser Automation**: Playwright-based token fetching
 - **Web Interface**: Beautiful real-time dashboard
 
-## 🔧 Recent Fixes & Improvements
-
-### Dockerfile Enhancements
-- ✅ Added non-root user for security
-- ✅ Proper environment variable setup
-- ✅ Health check integration
-- ✅ Optimized layer caching with `--frozen-lockfile`
-- ✅ Security hardening with read-only filesystem
-
-### Package.json Alignment
-- ✅ Added missing dependencies
-- ✅ Aligned scripts with Dockerfile expectations
-- ✅ Updated start command for production
-
-### Spotify Token Logic Improvements
-- ✅ Enhanced token validation with buffer time
-- ✅ Improved fallback mechanisms
-- ✅ Better error handling and recovery
-- ✅ Proactive refresh with error recovery
-- ✅ Token caching optimization
-
-### Browser Service Fixes
-- ✅ Fixed timeout handling
-- ✅ Improved page cleanup
-- ✅ Better error recovery
-- ✅ Enhanced retry logic
-
-### New Token Tracker (LavaSrc-inspired)
-- ✅ Token lifecycle management
-- ✅ Automatic refresh scheduling
-- ✅ Token validation and cleanup
-- ✅ Comprehensive statistics
-- ✅ Memory-efficient storage
 
 ## 📋 API Endpoints
 
@@ -121,40 +88,6 @@ curl http://localhost:3012/api/metrics
 curl http://localhost:3012/api/token-tracker
 ```
 
-## 🏗️ Architecture
-
-### Core Components
-
-1. **Spotify Service** (`src/services/spotify.ts`)
-   - Main token management service
-   - Handles both anonymous and authenticated tokens
-   - Proactive refresh scheduling
-   - Error recovery mechanisms
-
-2. **Token Tracker** (`src/services/token-tracker.ts`)
-   - LavaSrc-inspired token lifecycle management
-   - Automatic refresh scheduling
-   - Token validation and cleanup
-   - Memory-efficient storage
-
-3. **Browser Service** (`src/services/browser.ts`)
-   - Playwright-based automation
-   - Request interception for performance
-   - Cookie management
-   - Error handling and retry logic
-
-4. **Token Controller** (`src/controllers/token.ts`)
-   - Request handling and validation
-   - Response formatting
-   - Error management
-   - Metrics collection
-
-5. **Web Interface** (`src/app.ts`)
-   - Real-time dashboard
-   - Service monitoring
-   - API documentation
-   - Health status display
-
 ### Token Flow
 
 ```mermaid
@@ -173,7 +106,7 @@ graph TD
     G --> J
 ```
 
-## 🔍 Monitoring & Debugging
+## Monitoring & Debugging
 
 ### Web Dashboard
 Access the real-time dashboard at `http://localhost:3012` for:
@@ -232,43 +165,8 @@ bun run format
 - `docker:dev`: Docker Compose development
 - `docker:prod`: Docker Compose production
 
-## 🔒 Security Features
 
-- Non-root user in Docker container
-- Read-only filesystem
-- Resource limits
-- Security options
-- Input validation
-- Error sanitization
-
-## 📊 Performance Optimizations
-
-- Request interception to block unnecessary resources
-- Token caching with intelligent refresh
-- Memory-efficient token storage
-- Proactive refresh scheduling
-- Browser connection reuse
-- Optimized Docker layers
-
-## 🐛 Error Handling
-
-- Comprehensive error recovery
-- Automatic service restart
-- Fallback token mechanisms
-- Detailed error logging
-- Graceful degradation
-- Timeout management
-
-## 📈 Metrics & Monitoring
-
-- Request count and error rates
-- Token refresh statistics
-- Memory usage tracking
-- Browser health monitoring
-- Service uptime
-- Token tracker statistics
-
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -276,18 +174,14 @@ bun run format
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## License
 
 MIT License - see LICENSE file for details
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - Inspired by [LavaSrc](https://github.com/topi314/LavaSrc) token tracking logic
 - Built with [Bun](https://bun.sh), [Elysia](https://elysiajs.com), and [Playwright](https://playwright.dev)
 - Enhanced with comprehensive monitoring and error handling
 
 ---
-
-**Version**: 2.0.0  
-**Status**: Production Ready  
-**Last Updated**: 2024
