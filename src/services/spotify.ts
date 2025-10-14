@@ -1,5 +1,6 @@
 import { SpotifyBrowser } from './browser';
 import { TokenTracker } from './token-tracker';
+import { LavaSrcTracker } from './lavasrc-tracker';
 import type { 
     SpotifyToken, 
     Cookie, 
@@ -15,6 +16,7 @@ import { MutexLock } from '../utils/mutex';
 export class Spotify {
     private browser: SpotifyBrowser;
     private tokenTracker: TokenTracker;
+    private lavasrcTracker: LavaSrcTracker;
     private anonymousToken: SpotifyToken | null = null;
     private authenticatedToken: SpotifyToken | null = null;
     private proactiveRefreshTimer: NodeJS.Timeout | null = null;
@@ -40,6 +42,7 @@ export class Spotify {
         this.mutex = new MutexLock(30000, 60000);
         this.browser = new SpotifyBrowser();
         this.tokenTracker = new TokenTracker();
+        this.lavasrcTracker = new LavaSrcTracker();
         this.startTime = Date.now();
         
         this.initializeService();
@@ -322,6 +325,63 @@ export class Spotify {
         return this.refreshAnonymousToken();
     }
 
+    /**
+     * LavaSrc-compatible token getter
+     * This is the main method LavaSrc will use
+     */
+    public async getLavaSrcToken(cookies?: Cookie[], requestContext?: RequestContext): Promise<any> {
+        const requestId = requestContext?.requestId || 'unknown';
+        
+        try {
+            // Use LavaSrc tracker for token management
+            const token = await this.lavasrcTracker.getToken(cookies, requestContext, this);
+            
+            if (token) {
+                logs('info', `LavaSrc token provided`, { 
+                    requestId,
+                    isAnonymous: token.isAnonymous,
+                    expiresIn: token.expiresIn
+                });
+                return token;
+            }
+
+            // Fallback to direct token fetch
+            const spotifyToken = await this.getToken(cookies, requestContext);
+            if (spotifyToken) {
+                const lavasrcToken = this.convertToLavaSrcFormat(spotifyToken, requestId);
+                this.lavasrcTracker.storeToken(
+                    spotifyToken.isAnonymous ? 'anonymous' : 'authenticated', 
+                    lavasrcToken
+                );
+                return lavasrcToken;
+            }
+
+            return null;
+        } catch (error) {
+            this.errorCount++;
+            logs('error', 'LavaSrc token fetch failed', { error, requestId });
+            throw error;
+        }
+    }
+
+    /**
+     * Convert Spotify token to LavaSrc format
+     */
+    private convertToLavaSrcFormat(token: SpotifyToken, requestId: string): any {
+        return {
+            access_token: token.accessToken,
+            token_type: 'Bearer',
+            expires_in: Math.round((token.accessTokenExpirationTimestampMs - Date.now()) / 1000),
+            scope: 'user-read-private user-read-email',
+            client_id: token.clientId,
+            is_anonymous: token.isAnonymous,
+            cached: token.cached || false,
+            source: token.source || 'fresh',
+            timestamp: Date.now(),
+            request_id: requestId
+        };
+    }
+
     public getMetrics() {
         return {
             serviceState: this.serviceState,
@@ -334,7 +394,8 @@ export class Spotify {
             anonymousTokenValid: this.anonymousToken ? this.isTokenValid(this.anonymousToken) : false,
             authenticatedTokenValid: this.authenticatedToken ? this.isTokenValid(this.authenticatedToken) : false,
             browserStatus: this.browser.getStatus(),
-            tokenTrackerStats: this.tokenTracker.getStats()
+            tokenTrackerStats: this.tokenTracker.getStats(),
+            lavasrcTrackerStats: this.lavasrcTracker.getStats()
         };
     }
 
@@ -353,6 +414,7 @@ export class Spotify {
 
             await this.browser.close();
             this.tokenTracker.clearAll();
+            this.lavasrcTracker.clearAll();
             this.anonymousToken = null;
             this.authenticatedToken = null;
             this.isRefreshing = false;

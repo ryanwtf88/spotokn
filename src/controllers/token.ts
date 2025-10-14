@@ -7,11 +7,12 @@ export class TokenController {
     private errorCount: number = 0;
     private requestCount: number = 0;
     private startTime: number = Date.now();
+    private tokenCache: Map<string, { token: any; expires: number }> = new Map();
 
     constructor(private readonly tokenService: Spotify) { }
 
     public async handle(
-        queryParams: { force?: string; debug?: string; metrics?: string },
+        queryParams: { force?: string; debug?: string; metrics?: string; refresh?: string },
         cookies: Record<string, string> | undefined,
         setStatus: (status: number) => void,
         requestContext?: RequestContext
@@ -32,6 +33,12 @@ export class TokenController {
                 return this.tokenService.getMetrics();
             }
 
+            // Token refresh endpoint (LavaSrc specific)
+            if (queryParams.refresh === 'true') {
+                logs('info', 'Token refresh requested for LavaSrc', { requestId });
+                return await this.handleTokenRefresh(cookies, setStatus, requestId);
+            }
+
             // Force refresh endpoint
             if (queryParams.force === 'true') {
                 logs('info', 'Force refresh requested', { requestId });
@@ -45,50 +52,11 @@ export class TokenController {
                         { requestId }
                     );
                 }
-                return this.createSuccessResponse(token, requestId);
+                return this.createLavaSrcResponse(token, requestId);
             }
 
-            // Extract cookies
-            const cookieArray = this.extractCookies(cookies);
-            const hasSpDc = cookieArray.some(c => c.name === 'sp_dc');
-
-            if (hasSpDc) {
-                logs('info', 'Processing request with sp_dc cookie - will fetch authenticated token', { requestId });
-            } else {
-                logs('debug', 'Processing anonymous request - will use cached/proactively refreshed token', { requestId });
-            }
-
-            // Create request context
-            const context: RequestContext = {
-                requestId,
-                timestamp: Date.now(),
-                cookies: cookieArray,
-                queryParams
-            };
-
-            // Get token
-            const token = await this.tokenService.getToken(cookieArray, context);
-
-            if (!token) {
-                setStatus(503);
-                logs('error', 'Token service returned null - service temporarily unavailable', { requestId });
-                return ErrorMiddleware.createErrorResponse(
-                    'Token service temporarily unavailable',
-                    'TOKEN_FETCH_FAILED',
-                    503,
-                    { requestId }
-                );
-            }
-
-            // Log success
-            logs('info', `Returned ${token.isAnonymous ? 'anonymous' : 'authenticated'} token successfully`, { 
-                requestId,
-                cached: token.cached,
-                source: token.source,
-                expiresIn: Math.round((token.accessTokenExpirationTimestampMs - Date.now()) / 1000 / 60)
-            });
-
-            return this.createSuccessResponse(token, requestId);
+            // Main token endpoint - LavaSrc compatible
+            return await this.handleMainTokenRequest(cookies, setStatus, requestId);
 
         } catch (error) {
             this.errorCount++;
@@ -105,6 +73,126 @@ export class TokenController {
             name,
             value
         }));
+    }
+
+    /**
+     * Handle main token request - LavaSrc compatible
+     */
+    private async handleMainTokenRequest(
+        cookies: Record<string, string> | undefined,
+        setStatus: (status: number) => void,
+        requestId: string
+    ): Promise<any> {
+        const cookieArray = this.extractCookies(cookies);
+        const hasSpDc = cookieArray.some(c => c.name === 'sp_dc');
+        const cacheKey = hasSpDc ? 'authenticated' : 'anonymous';
+
+        // Check cache first
+        const cached = this.tokenCache.get(cacheKey);
+        if (cached && cached.expires > Date.now()) {
+            logs('info', `Returning cached ${cacheKey} token`, { requestId });
+            return cached.token;
+        }
+
+        // Create request context
+        const context: RequestContext = {
+            requestId,
+            timestamp: Date.now(),
+            cookies: cookieArray,
+            queryParams: {}
+        };
+
+        // Get fresh token using LavaSrc-compatible method
+        const token = await this.tokenService.getLavaSrcToken(cookieArray, context);
+
+        if (!token) {
+            setStatus(503);
+            logs('error', 'Token service returned null - service temporarily unavailable', { requestId });
+            return ErrorMiddleware.createErrorResponse(
+                'Token service temporarily unavailable',
+                'TOKEN_FETCH_FAILED',
+                503,
+                { requestId }
+            );
+        }
+
+        // Cache the token
+        this.tokenCache.set(cacheKey, {
+            token,
+            expires: token.expires_in ? (Date.now() + token.expires_in * 1000) : (Date.now() + 3600000) // 1 hour default
+        });
+
+        logs('info', `Returned fresh ${token.is_anonymous ? 'anonymous' : 'authenticated'} token`, { 
+            requestId,
+            expiresIn: token.expires_in
+        });
+
+        return token;
+    }
+
+    /**
+     * Handle token refresh - LavaSrc specific
+     */
+    private async handleTokenRefresh(
+        cookies: Record<string, string> | undefined,
+        setStatus: (status: number) => void,
+        requestId: string
+    ): Promise<any> {
+        const cookieArray = this.extractCookies(cookies);
+        const hasSpDc = cookieArray.some(c => c.name === 'sp_dc');
+        const cacheKey = hasSpDc ? 'authenticated' : 'anonymous';
+
+        // Clear cached token
+        this.tokenCache.delete(cacheKey);
+
+        // Create request context
+        const context: RequestContext = {
+            requestId,
+            timestamp: Date.now(),
+            cookies: cookieArray,
+            queryParams: {}
+        };
+
+        // Force refresh using LavaSrc-compatible method
+        const token = await this.tokenService.getLavaSrcToken(cookieArray, context);
+
+        if (!token) {
+            setStatus(503);
+            return ErrorMiddleware.createErrorResponse(
+                'Token refresh failed - service temporarily unavailable',
+                'TOKEN_FETCH_FAILED',
+                503,
+                { requestId }
+            );
+        }
+
+        // Cache the new token
+        this.tokenCache.set(cacheKey, {
+            token,
+            expires: token.expires_in ? (Date.now() + token.expires_in * 1000) : (Date.now() + 3600000) // 1 hour default
+        });
+
+        logs('info', `Token refreshed successfully for ${cacheKey}`, { requestId });
+        return token;
+    }
+
+    /**
+     * Create LavaSrc-compatible response format
+     */
+    private createLavaSrcResponse(token: any, requestId: string): any {
+        // LavaSrc expects a specific format
+        return {
+            access_token: token.accessToken,
+            token_type: 'Bearer',
+            expires_in: Math.round((token.accessTokenExpirationTimestampMs - Date.now()) / 1000),
+            scope: 'user-read-private user-read-email',
+            client_id: token.clientId,
+            is_anonymous: token.isAnonymous,
+            cached: token.cached || false,
+            source: token.source || 'fresh',
+            timestamp: Date.now(),
+            request_id: requestId
+        };
     }
 
     private createSuccessResponse(token: any, requestId: string): TokenResponse {

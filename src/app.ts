@@ -24,7 +24,7 @@ class ApplicationServer {
             .decorate('tokenController', this.tokenController)
             .decorate('tokenService', this.tokenService)
             .get('/api/token', async ({ query, headers, set, tokenController, request }: { 
-                query: { force?: string; debug?: string; metrics?: string }, 
+                query: { force?: string; debug?: string; metrics?: string; refresh?: string }, 
                 headers: { cookie?: string; 'user-agent'?: string }, 
                 set: any, 
                 tokenController: TokenController,
@@ -64,6 +64,48 @@ class ApplicationServer {
                 } catch (error) {
                     set.status = 500;
                     return { success: false, error: 'Refresh failed' };
+                }
+            })
+            .get('/api/lavasrc/token', async ({ query, headers, set, tokenService, request }: { 
+                query: { refresh?: string }, 
+                headers: { cookie?: string; 'user-agent'?: string }, 
+                set: any, 
+                tokenService: Spotify,
+                request: Request
+            }) => {
+                const cookies = this.parseCookieHeader(headers.cookie);
+                const requestContext: RequestContext = {
+                    requestId: `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    timestamp: Date.now(),
+                    userAgent: headers['user-agent'],
+                    ip: this.getClientIP(request),
+                    cookies: cookies ? Object.entries(cookies).map(([name, value]) => ({ name, value })) : undefined,
+                    queryParams: query
+                };
+                
+                try {
+                    const token = await tokenService.getLavaSrcToken(
+                        requestContext.cookies, 
+                        requestContext
+                    );
+                    
+                    if (!token) {
+                        set.status = 503;
+                        return { 
+                            error: 'Token service temporarily unavailable',
+                            error_description: 'Unable to fetch Spotify token',
+                            request_id: requestContext.requestId
+                        };
+                    }
+                    
+                    return token;
+                } catch (error) {
+                    set.status = 500;
+                    return { 
+                        error: 'Internal server error',
+                        error_description: error instanceof Error ? error.message : 'Unknown error',
+                        request_id: requestContext.requestId
+                    };
                 }
             })
             .get('/health', () => {
@@ -254,6 +296,8 @@ class ApplicationServer {
                 <a href="/api/token" class="btn">Get Token</a>
                 <a href="/api/token?debug=true" class="btn">Debug Info</a>
                 <a href="/api/token?metrics=true" class="btn">Metrics</a>
+                <a href="/api/token?refresh=true" class="btn">Refresh Token</a>
+                <a href="/api/lavasrc/token" class="btn">LavaSrc Token</a>
                 <a href="/api/token-tracker" class="btn">Token Tracker</a>
                 <a href="/api/refresh" class="btn">Force Refresh</a>
             </div>
@@ -289,6 +333,8 @@ class ApplicationServer {
                 <div class="endpoint">GET /api/token</div>
                 <div class="endpoint">GET /api/token?debug=true</div>
                 <div class="endpoint">GET /api/token?metrics=true</div>
+                <div class="endpoint">GET /api/token?refresh=true</div>
+                <div class="endpoint">GET /api/lavasrc/token</div>
                 <div class="endpoint">GET /api/status</div>
                 <div class="endpoint">GET /api/refresh</div>
                 <div class="endpoint">GET /api/token-tracker</div>
@@ -302,6 +348,12 @@ class ApplicationServer {
                 </div>
                 <div class="endpoint">
                     curl -H "Cookie: sp_dc=your_cookie" http://localhost:${SERVER_PORT}/api/token
+                </div>
+                <div class="endpoint">
+                    curl http://localhost:${SERVER_PORT}/api/token?refresh=true
+                </div>
+                <div class="endpoint">
+                    curl http://localhost:${SERVER_PORT}/api/lavasrc/token
                 </div>
                 <div class="endpoint">
                     curl http://localhost:${SERVER_PORT}/api/token?force=true
@@ -362,6 +414,7 @@ class ApplicationServer {
             logs('info', `📡 Server: http://localhost:${SERVER_PORT}`);
             logs('info', `🌐 Web Interface: http://localhost:${SERVER_PORT}`);
             logs('info', `🎯 Token API: http://localhost:${SERVER_PORT}/api/token`);
+            logs('info', `🎵 LavaSrc API: http://localhost:${SERVER_PORT}/api/lavasrc/token`);
             logs('info', `📊 Status API: http://localhost:${SERVER_PORT}/api/status`);
             logs('info', `📈 Metrics API: http://localhost:${SERVER_PORT}/api/metrics`);
             logs('info', `🔍 Token Tracker: http://localhost:${SERVER_PORT}/api/token-tracker`);
@@ -372,6 +425,8 @@ class ApplicationServer {
             logs('info', '📋 Usage Examples:');
             logs('info', `  • Anonymous: curl http://localhost:${SERVER_PORT}/api/token`);
             logs('info', `  • Authenticated: curl -H "Cookie: sp_dc=your_cookie" http://localhost:${SERVER_PORT}/api/token`);
+            logs('info', `  • Token Refresh: curl http://localhost:${SERVER_PORT}/api/token?refresh=true`);
+            logs('info', `  • LavaSrc Token: curl http://localhost:${SERVER_PORT}/api/lavasrc/token`);
             logs('info', `  • Force Refresh: curl http://localhost:${SERVER_PORT}/api/token?force=true`);
             logs('info', `  • Debug Info: curl http://localhost:${SERVER_PORT}/api/token?debug=true`);
             logs('info', `  • Metrics: curl http://localhost:${SERVER_PORT}/api/token?metrics=true`);
