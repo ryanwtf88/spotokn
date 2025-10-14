@@ -6,7 +6,6 @@ import { ErrorMiddleware } from "./middleware/error";
 import { logs } from "./utils/logger";
 import type { RequestContext } from "./types/types";
 
-
 const SERVER_PORT = parseInt(process.env.PORT || '3012', 10);
 
 class ApplicationServer {
@@ -115,7 +114,7 @@ class ApplicationServer {
                 return {
                     status: 'healthy',
                     timestamp: Date.now(),
-                    uptime: isNaN(uptime) ? 0 : Math.round(uptime * 1000), // Convert to milliseconds
+                    uptime: isNaN(uptime) ? 0 : Math.round(uptime * 1000),
                     version: `Bun v${Bun.version}`,
                     service: 'spotify-token-service',
                     memory: {
@@ -170,120 +169,370 @@ class ApplicationServer {
         return 'unknown';
     }
 
+    private formatUptime(milliseconds: number): string {
+        const seconds = Math.floor(milliseconds / 1000);
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        
+        if (days > 0) {
+            return days + "d " + hours.toString().padStart(2, '0') + "h " + minutes.toString().padStart(2, '0') + "m " + secs.toString().padStart(2, '0') + "s";
+        }
+        return hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0') + ":" + secs.toString().padStart(2, '0');
+    }
+
     private getWebInterface() {
-        return new Response(`
-<!DOCTYPE html>
+        const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spotify Token Service</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+        }
+        
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #1db954, #1ed760);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1a2f3f, #0d1b2a);
             min-height: 100vh;
             color: #fff;
+            overflow-x: hidden;
         }
+        
+        .floating-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+        
+        .floating-circle {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, #1db954, transparent);
+            animation: float 20s infinite linear;
+        }
+        
+        .floating-circle:nth-child(1) {
+            width: 300px;
+            height: 300px;
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+        
+        .floating-circle:nth-child(2) {
+            width: 200px;
+            height: 200px;
+            top: 60%;
+            right: 10%;
+            animation-delay: -5s;
+            background: radial-gradient(circle, #1ed760, transparent);
+        }
+        
+        .floating-circle:nth-child(3) {
+            width: 150px;
+            height: 150px;
+            bottom: 20%;
+            left: 20%;
+            animation-delay: -10s;
+            background: radial-gradient(circle, #1db954, transparent);
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-20px) rotate(90deg); }
+            50% { transform: translateY(0px) rotate(180deg); }
+            75% { transform: translateY(20px) rotate(270deg); }
+        }
+        
         .container { 
-            max-width: 1200px; 
+            max-width: 1400px; 
             margin: 0 auto; 
             padding: 2rem;
+            position: relative;
+            z-index: 1;
         }
+        
         .header {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 4rem;
+            position: relative;
         }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(90deg, #1db954, #1ed760);
+            border-radius: 2px;
+        }
+        
         .header h1 {
-            font-size: 3rem;
+            font-size: 4rem;
             margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(29, 185, 84, 0.3);
+            font-weight: 700;
+            letter-spacing: -1px;
         }
+        
         .header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
+            font-size: 1.4rem;
+            opacity: 0.8;
+            font-weight: 300;
         }
+        
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2.5rem;
+            margin-bottom: 4rem;
         }
+        
         .card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 2rem;
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.3),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
+        
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #1db954, #1ed760);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 
+                0 30px 60px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .card:hover::before {
+            transform: scaleX(1);
+        }
+        
         .card h2 {
-            margin-bottom: 1rem;
-            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #1db954;
         }
+        
+        .btn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
         .btn {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
+            background: linear-gradient(135deg, #1db954, #1ed760);
+            border: none;
             color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
             cursor: pointer;
             text-decoration: none;
-            display: inline-block;
-            margin: 0.5rem;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 25px rgba(29, 185, 84, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(29, 185, 84, 0.4);
+        }
+        
+        .btn:hover::before {
+            left: 100%;
+        }
+        
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        
+        .status-item {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .status-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1db954;
+        }
+        
+        .endpoint {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1.2rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Menlo', monospace;
+            border-left: 4px solid #1db954;
             transition: all 0.3s ease;
         }
-        .btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
+        
+        .endpoint:hover {
+            background: rgba(0, 0, 0, 0.5);
+            transform: translateX(5px);
         }
-        .status {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin: 1rem 0;
-            padding: 1rem;
-            background: rgba(0,0,0,0.2);
-            border-radius: 8px;
-        }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4ade80;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .endpoint {
-            background: rgba(0,0,0,0.3);
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 0.5rem 0;
-            font-family: 'Monaco', 'Menlo', monospace;
-        }
+        
         .footer {
             text-align: center;
-            margin-top: 3rem;
-            opacity: 0.8;
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0.7;
         }
-        .real-time {
-            background: rgba(0,0,0,0.2);
-            padding: 1rem;
-            border-radius: 8px;
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { 
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% { 
+                opacity: 0.7;
+                transform: scale(1.05);
+            }
+        }
+        
+        .live-badge {
+            display: inline-block;
+            background: #1db954;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+            animation: pulse 2s infinite;
+        }
+        
+        .metric-chart {
+            width: 100%;
+            height: 120px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
             margin: 1rem 0;
+            position: relative;
+            overflow: hidden;
         }
-        .metric {
-            display: flex;
-            justify-content: space-between;
-            margin: 0.5rem 0;
+        
+        .chart-bar {
+            position: absolute;
+            bottom: 0;
+            width: 8px;
+            background: linear-gradient(to top, #1db954, #1ed760);
+            border-radius: 4px 4px 0 0;
+            animation: grow 1s ease-out;
+        }
+        
+        @keyframes grow {
+            from { height: 0; }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .btn-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
+    <div class="floating-bg">
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+        <div class="floating-circle"></div>
+    </div>
+    
     <div class="container">
         <div class="header">
             <h1>Spotokn</h1>
@@ -293,39 +542,38 @@ class ApplicationServer {
         <div class="grid">
             <div class="card">
                 <h2>Quick Actions</h2>
-                <a href="/api/token" class="btn">Get Token</a>
-                <a href="/api/token?debug=true" class="btn">Debug Info</a>
-                <a href="/api/token?metrics=true" class="btn">Metrics</a>
-                <a href="/api/token?refresh=true" class="btn">Refresh Token</a>
-                <a href="/api/lavasrc/token" class="btn">LavaSrc Token</a>
-                <a href="/api/token-tracker" class="btn">Token Tracker</a>
-                <a href="/api/refresh" class="btn">Force Refresh</a>
+                <div class="btn-grid">
+                    <a href="/api/token" class="btn">Get Token</a>
+                    <a href="/api/token?debug=true" class="btn btn-secondary">Debug Info</a>
+                    <a href="/api/token?metrics=true" class="btn btn-secondary">Metrics</a>
+                    <a href="/api/token?refresh=true" class="btn">Refresh Token</a>
+                    <a href="/api/lavasrc/token" class="btn">LavaSrc Token</a>
+                    <a href="/api/token-tracker" class="btn btn-secondary">Token Tracker</a>
+                    <a href="/api/refresh" class="btn">Force Refresh</a>
+                </div>
             </div>
 
             <div class="card">
-                <h2>Service Status</h2>
-                <div class="status">
-                    <span>Service Status</span>
-                    <div class="status-indicator"></div>
-                </div>
-                <div class="real-time" id="status">
-                    <div class="metric">
-                        <span>Uptime:</span>
-                        <span id="uptime">Loading...</span>
+                <h2>Service Status <span class="live-badge">LIVE</span></h2>
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-label">Uptime</div>
+                        <div class="status-value" id="uptime">00:00:00</div>
                     </div>
-                    <div class="metric">
-                        <span>Memory Usage:</span>
-                        <span id="memory">Loading...</span>
+                    <div class="status-item">
+                        <div class="status-label">Memory</div>
+                        <div class="status-value" id="memory">0 MB</div>
                     </div>
-                    <div class="metric">
-                        <span>Heap Used:</span>
-                        <span id="heap">Loading...</span>
+                    <div class="status-item">
+                        <div class="status-label">Heap Used</div>
+                        <div class="status-value" id="heap">0 MB</div>
                     </div>
-                    <div class="metric">
-                        <span>Browser Status:</span>
-                        <span id="browser">Loading...</span>
+                    <div class="status-item">
+                        <div class="status-label">Browser</div>
+                        <div class="status-value" id="browser">Checking...</div>
                     </div>
                 </div>
+                <div class="metric-chart" id="memoryChart"></div>
             </div>
 
             <div class="card">
@@ -368,40 +616,96 @@ class ApplicationServer {
     </div>
 
     <script>
+        let memoryData = [];
+        const maxDataPoints = 20;
+        
+        function formatUptime(milliseconds) {
+            const seconds = Math.floor(milliseconds / 1000);
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (days > 0) {
+                return days + "d " + hours.toString().padStart(2, '0') + "h " + minutes.toString().padStart(2, '0') + "m " + secs.toString().padStart(2, '0') + "s";
+            }
+            return hours.toString().padStart(2, '0') + ":" + minutes.toString().padStart(2, '0') + ":" + secs.toString().padStart(2, '0');
+        }
+        
+        function updateMemoryChart() {
+            const chart = document.getElementById('memoryChart');
+            chart.innerHTML = '';
+            
+            if (memoryData.length === 0) return;
+            
+            const maxMemory = Math.max(...memoryData);
+            const chartWidth = chart.offsetWidth;
+            const barWidth = Math.max(6, (chartWidth - 20) / memoryData.length - 2);
+            
+            memoryData.forEach((value, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'chart-bar';
+                bar.style.height = ((value / maxMemory) * 100) + '%';
+                bar.style.left = (index * (barWidth + 2)) + 'px';
+                bar.style.width = barWidth + 'px';
+                chart.appendChild(bar);
+            });
+        }
+        
         async function updateStatus() {
             try {
                 const response = await fetch('/api/status');
                 const data = await response.json();
                 
-                // Handle uptime safely
                 const uptime = data.uptime || 0;
-                document.getElementById('uptime').textContent = Math.round(uptime / 1000) + 's';
+                document.getElementById('uptime').textContent = formatUptime(uptime);
                 
-                // Handle memory usage safely
                 const memoryUsage = data.memoryUsage || {};
                 const rss = memoryUsage.rss || 0;
                 const heapUsed = memoryUsage.heapUsed || 0;
                 
-                document.getElementById('memory').textContent = Math.round(rss / 1024 / 1024) + 'MB';
-                document.getElementById('heap').textContent = Math.round(heapUsed / 1024 / 1024) + 'MB';
+                const rssMB = Math.round(rss / 1024 / 1024);
+                const heapMB = Math.round(heapUsed / 1024 / 1024);
+                
+                document.getElementById('memory').textContent = rssMB + ' MB';
+                document.getElementById('heap').textContent = heapMB + ' MB';
                 document.getElementById('browser').textContent = data.browserConnected ? 'Connected' : 'Disconnected';
+                
+                memoryData.push(rssMB);
+                if (memoryData.length > maxDataPoints) {
+                    memoryData.shift();
+                }
+                updateMemoryChart();
+                
             } catch (error) {
                 console.error('Failed to update status:', error);
-                // Set fallback values
                 document.getElementById('uptime').textContent = 'Error';
                 document.getElementById('memory').textContent = 'Error';
                 document.getElementById('heap').textContent = 'Error';
                 document.getElementById('browser').textContent = 'Error';
             }
         }
-
-        // Update status every 5 seconds
+        
         updateStatus();
-        setInterval(updateStatus, 5000);
+        setInterval(updateStatus, 2000);
+        
+        setInterval(() => {
+            const uptimeElement = document.getElementById('uptime');
+            const currentText = uptimeElement.textContent;
+            if (!currentText.includes('Error')) {
+                const currentUptime = uptimeElement.dataset.uptime ? 
+                    parseInt(uptimeElement.dataset.uptime) + 2000 : 2000;
+                uptimeElement.dataset.uptime = currentUptime;
+                uptimeElement.textContent = formatUptime(currentUptime);
+            }
+        }, 2000);
+        
+        window.addEventListener('resize', updateMemoryChart);
     </script>
 </body>
-</html>
-        `, {
+</html>`;
+
+        return new Response(htmlContent, {
             headers: {
                 'Content-Type': 'text/html',
             },
@@ -450,7 +754,6 @@ process.on('unhandledRejection', async (reason) => {
     await server.tokenService.cleanup();
     process.exit(1);
 });
-
 
 const gracefulShutdown = async (signal: string) => {
     logs('info', `🛑 Received ${signal} - Initiating graceful shutdown...`);
