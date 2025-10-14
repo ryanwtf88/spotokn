@@ -2,36 +2,37 @@
 
 A high-performance Spotify token service with real-time monitoring, enhanced error handling, and LavaSrc-inspired token tracking logic.
 
-## 🚀 Features
+## Features
 
-- **Dual Token Support**: Anonymous and authenticated token handling
-- **Proactive Refresh**: Automatic token refresh before expiration
-- **Token Tracking**: LavaSrc-inspired token lifecycle management
-- **Real-time Monitoring**: Comprehensive metrics and status endpoints
-- **Docker Ready**: Production-ready containerization
-- **Error Recovery**: Automatic service recovery and fallback mechanisms
-- **Browser Automation**: Playwright-based token fetching
-- **Web Interface**: Beautiful real-time dashboard
+- 🚀 **High Performance**: Built with Bun runtime and Elysia framework
+- 🔄 **Real-time Monitoring**: Live status updates and metrics dashboard
+- 🛡️ **Advanced Error Handling**: Comprehensive error recovery and retry logic
+- 🎯 **Smart Token Management**: Proactive refresh and intelligent caching
+- 🌐 **Beautiful Web Interface**: Real-time dashboard with live metrics
+- 🐳 **Docker Ready**: Multi-stage builds with security best practices
+- 📊 **Comprehensive Metrics**: Detailed performance and usage statistics
+- 🔧 **Developer Friendly**: Extensive API endpoints and debugging tools
 
+## 🚀 Quick Start
 
-## 📋 API Endpoints
+### Prerequisites
+- [Bun](https://bun.sh) >= 1.0.0
+- [Playwright](https://playwright.dev) (auto-installed)
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/token` | Get Spotify token (anonymous or authenticated) |
-| `GET /api/token?debug=true` | Get debug information |
-| `GET /api/token?metrics=true` | Get detailed metrics |
-| `GET /api/token?force=true` | Force token refresh |
-| `GET /api/status` | Get service status |
-| `GET /api/metrics` | Get comprehensive metrics |
-| `GET /api/token-tracker` | Get token tracker statistics |
-| `GET /api/refresh` | Force refresh anonymous token |
-| `GET /health` | Health check endpoint |
-| `GET /` | Web interface dashboard |
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/ryanwtf88/spotokn.git
+cd spotokn
 
-## 🐳 Docker Deployment
+# Install dependencies and setup
+bun run setup
 
-### Quick Start
+# Start the service
+bun run start
+```
+
+### Docker (Recommended)
 ```bash
 # Build and run with Docker Compose
 docker-compose up --build
@@ -56,132 +57,85 @@ BROWSER_RETRY_ATTEMPTS=3
 BROWSER_RETRY_DELAY=2000
 ```
 
-## 🚀 Usage Examples
+## Web Interface
 
-### Anonymous Token
+Visit `http://localhost:3012` for the beautiful real-time dashboard featuring:
+- Live service status and metrics
+- Quick action buttons
+- API endpoint documentation
+- Real-time monitoring data
+
+## API Endpoints
+
+### Core Endpoints
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/lavasrc/token` | GET | Get Spotify token (anonymous or authenticated) |
+| `/api/token?debug=true` | GET | Get detailed service status |
+| `/api/token?metrics=true` | GET | Get comprehensive metrics |
+| `/api/token?force=true` | GET | Force refresh token |
+| `/api/status` | GET | Service health and status |
+| `/api/metrics` | GET | Performance metrics |
+| `/api/refresh` | GET | Force refresh anonymous token |
+| `/health` | GET | Basic health check |
+| `/` | GET | Web interface |
+
+### Usage Examples
+
+#### Get Anonymous Token
 ```bash
 curl http://localhost:3012/api/token
 ```
 
-### Authenticated Token
+#### Get Authenticated Token
 ```bash
-curl -H "Cookie: sp_dc=your_cookie_value" http://localhost:3012/api/token
+curl -H "Cookie: sp_dc=your_spotify_cookie" http://localhost:3012/api/token
 ```
 
-### Force Refresh
+#### Force Refresh
 ```bash
 curl http://localhost:3012/api/token?force=true
 ```
 
-### Debug Information
+#### Get Debug Information
 ```bash
 curl http://localhost:3012/api/token?debug=true
 ```
 
-### Metrics
+#### Get Metrics
 ```bash
 curl http://localhost:3012/api/metrics
 ```
 
-### Token Tracker Stats
-```bash
-curl http://localhost:3012/api/token-tracker
-```
-
-### Token Flow
-
-```mermaid
-graph TD
-    A[Request] --> B{Has sp_dc Cookie?}
-    B -->|Yes| C[Get Authenticated Token]
-    B -->|No| D[Get Anonymous Token]
-    C --> E[Fresh Token from Browser]
-    D --> F{Token Cached & Valid?}
-    F -->|Yes| G[Return Cached Token]
-    F -->|No| H[Refresh Token]
-    H --> I[Store in Token Tracker]
-    I --> J[Return Token]
-    E --> K[Store in Token Tracker]
-    K --> J
-    G --> J
-```
-
-## Monitoring & Debugging
-
-### Web Dashboard
-Access the real-time dashboard at `http://localhost:3012` for:
-- Service status and health
-- Memory usage and performance
-- Token statistics
-- Browser connection status
-- Real-time metrics
-
-### Logs
-The service provides comprehensive logging:
-- Request/response tracking
-- Error details and stack traces
-- Performance metrics
-- Token lifecycle events
-
-### Health Checks
-- Docker health check: `curl -f http://localhost:3012/health`
-- Service status: `curl http://localhost:3012/api/status`
-- Detailed metrics: `curl http://localhost:3012/api/metrics`
-
-## 🛠️ Development
-
-### Prerequisites
-- Bun >= 1.0.0
-- Docker (for containerized deployment)
-- Node.js 18+ (for development)
-
-### Local Development
-```bash
-# Install dependencies
-bun install
-
-# Start development server
-bun run dev
-
-# Run tests
-bun test
-
-# Lint code
-bun run lint
-
-# Format code
-bun run format
-```
-
-### Scripts
-- `start`: Production server
-- `dev`: Development server with watch mode
-- `build`: Build for production
-- `test`: Run tests
-- `lint`: TypeScript linting
-- `format`: Code formatting
-- `docker:build`: Build Docker image
-- `docker:run`: Run Docker container
-- `docker:dev`: Docker Compose development
-- `docker:prod`: Docker Compose production
-
+## Response Format
 
 ## Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
-- Inspired by [LavaSrc](https://github.com/topi314/LavaSrc) token tracking logic
-- Built with [Bun](https://bun.sh), [Elysia](https://elysiajs.com), and [Playwright](https://playwright.dev)
-- Enhanced with comprehensive monitoring and error handling
+- [Bun](https://bun.sh) - Incredible JavaScript runtime
+- [Elysia](https://elysiajs.com) - Fast and elegant web framework
+- [Playwright](https://playwright.dev) - Reliable browser automation
+- [Spotify](https://spotify.com) - Music streaming platform
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/ryanwtf88/spotokn/issues)
+- **Documentation**: [Wiki](https://github.com/ryanwtf88/spotokn/wiki)
+- **Discussions**: [GitHub Discussions](https://github.com/ryanwtf88/spotokn/discussions)
 
 ---
+
+**Made with ❤️ by [RY4N](https://github.com/ryanwtf88)**
+
+*High-performance Spotify token service for the modern web*
