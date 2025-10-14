@@ -61,6 +61,60 @@ BROWSER_TIMEOUT=15000
 BROWSER_RETRY_ATTEMPTS=3
 BROWSER_RETRY_DELAY=2000
 ```
+### LavaSrc Integration
+```yaml
+spotify:
+  preferAnonymousToken: true
+  customTokenEndpoint: "http://yourserver:3012/api/lavasrc/token"
+  # Optional: Use authenticated tokens
+  # customTokenEndpoint: "http://yourserver:3012/api/lavasrc/token"
+  # And pass sp_dc cookie in requests
+```
+
+## Development
+
+### Available Scripts
+```bash
+# Development
+bun run dev          # Start with hot reload
+bun run start        # Start production server
+bun run build        # Build for production
+
+# Testing
+bun run test         # Run tests
+bun run test:watch   # Run tests in watch mode
+
+# Code Quality
+bun run lint         # Type checking
+bun run format       # Format code
+
+# Docker
+bun run docker:build # Build Docker image
+bun run docker:run   # Run Docker container
+bun run docker:dev   # Docker Compose development
+
+# Utilities
+bun run health       # Health check
+bun run token:test   # Test token endpoint
+bun run status       # Get service status
+bun run metrics      # Get metrics
+bun run refresh      # Force refresh
+bun run clean        # Clean build artifacts
+```
+
+## Docker
+
+### Multi-stage Build
+The Dockerfile uses a multi-stage build for optimal production images:
+- **Base stage**: Installs dependencies and builds the application
+- **Production stage**: Creates minimal runtime image with security hardening
+
+### Security Features
+- Non-root user execution
+- Minimal Alpine Linux base
+- Security-hardened Chromium installation
+- Health checks and proper signal handling
+
 
 ## Web Interface
 
