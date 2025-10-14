@@ -1,6 +1,11 @@
 # Spotokn
 
-A high-performance Spotify token service with real-time monitoring, enhanced error handling, and LavaSrc-inspired token tracking logic.
+[![Bun](https://img.shields.io/badge/Bun-1.1.0-000000?style=flat&logo=bun)](https://bun.sh)
+[![Elysia](https://img.shields.io/badge/Elysia-1.3.5-00D4AA?style=flat)](https://elysiajs.com)
+[![Playwright](https://img.shields.io/badge/Playwright-1.54.1-2EAD33?style=flat&logo=playwright)](https://playwright.dev)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat&logo=docker)](https://docker.com)
+
+A high-performance, real-time Spotify token service with advanced monitoring, error handling, and automatic token management. Built with Bun, Elysia, and Playwright for maximum performance and reliability.
 
 ## Features
 
@@ -84,7 +89,7 @@ Visit `http://localhost:3012` for the beautiful real-time dashboard featuring:
 
 #### Get Anonymous Token
 ```bash
-curl http://localhost:3012/api/token
+curl http://localhost:3012/api/lavasrc/token
 ```
 
 #### Get Authenticated Token
@@ -108,6 +113,41 @@ curl http://localhost:3012/api/metrics
 ```
 
 ## Response Format
+```
+GET /api/lavasrc/token
+```
+### Successful Token Response
+```json
+{
+  "access_token": "BQC...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "user-read-private user-read-email",
+  "client_id": "spotify_client_id",
+  "is_anonymous": false,
+  "cached": false,
+  "source": "fresh",
+  "timestamp": 1703123456789,
+  "request_id": "req_1234567890_abc123"
+}
+```
+
+### Statistics Endpoint
+```
+GET /api/token-tracker
+```
+Returns detailed token tracker statistics:
+```json
+{
+  "totalTokens": 2,
+  "validTokens": 2,
+  "invalidTokens": 0,
+  "activeTimers": 1,
+  "cacheSize": 2,
+  "maxCacheSize": 100,
+  "tokens": [...]
+}
+```
 
 ## Contributing
 
