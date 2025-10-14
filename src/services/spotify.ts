@@ -1,4 +1,5 @@
 import { SpotifyBrowser } from './browser';
+import { TokenTracker } from './token-tracker';
 import type { 
     SpotifyToken, 
     Cookie, 
@@ -13,6 +14,7 @@ import { MutexLock } from '../utils/mutex';
 
 export class Spotify {
     private browser: SpotifyBrowser;
+    private tokenTracker: TokenTracker;
     private anonymousToken: SpotifyToken | null = null;
     private authenticatedToken: SpotifyToken | null = null;
     private proactiveRefreshTimer: NodeJS.Timeout | null = null;
@@ -37,6 +39,7 @@ export class Spotify {
         
         this.mutex = new MutexLock(30000, 60000);
         this.browser = new SpotifyBrowser();
+        this.tokenTracker = new TokenTracker();
         this.startTime = Date.now();
         
         this.initializeService();
@@ -90,6 +93,13 @@ export class Spotify {
         } catch (error) {
             this.errorCount++;
             logs('error', 'Token request failed', { error, requestId });
+            
+            // If we have a cached anonymous token and the request is for anonymous, return it as fallback
+            if (!this.hasSpDcCookie(cookies) && this.anonymousToken && this.isTokenValid(this.anonymousToken)) {
+                logs('warn', 'Using cached anonymous token as fallback', { requestId });
+                return this.anonymousToken;
+            }
+            
             throw error;
         }
     }
@@ -107,6 +117,7 @@ export class Spotify {
 
             if (!token.isAnonymous) {
                 this.authenticatedToken = token;
+                this.tokenTracker.storeToken('authenticated', token);
                 this.lastRefreshTime = Date.now();
                 this.refreshCount++;
                 logs('info', 'Successfully obtained authenticated token', { 
@@ -179,6 +190,7 @@ export class Spotify {
 
             if (token.isAnonymous) {
                 this.anonymousToken = token;
+                this.tokenTracker.storeToken('anonymous', token);
                 this.lastRefreshTime = Date.now();
                 this.refreshCount++;
                 this.serviceState = 'ready';
@@ -217,10 +229,20 @@ export class Spotify {
                         logs('info', `Anonymous token expires in ${Math.round(timeUntilExpiry / 1000 / 60)} minutes - proactively refreshing`);
                         await this.refreshAnonymousToken();
                     }
+                } else if (!this.anonymousToken && this.serviceState === 'ready') {
+                    // If we don't have an anonymous token, try to get one
+                    logs('info', 'No anonymous token available, attempting to fetch one');
+                    await this.refreshAnonymousToken();
                 }
             } catch (error) {
                 logs('error', 'Proactive refresh check failed', error);
                 this.errorCount++;
+                
+                // If we've had too many errors, try to recover
+                if (this.errorCount > 5) {
+                    logs('warn', 'Too many errors, attempting service recovery');
+                    await this.recoverService();
+                }
             }
 
             this.proactiveRefreshTimer = setTimeout(checkAndRefresh, this.config.checkInterval);
@@ -241,9 +263,19 @@ export class Spotify {
     }
 
     private isTokenValid(token: SpotifyToken): boolean {
-        const isExpired = token.accessTokenExpirationTimestampMs <= Date.now();
-        const isTooOld = token.timestamp && (Date.now() - token.timestamp) > this.config.cacheTimeout;
-        return !isExpired && !isTooOld;
+        if (!token || !token.accessToken || !token.accessTokenExpirationTimestampMs) {
+            return false;
+        }
+        
+        const now = Date.now();
+        const isExpired = token.accessTokenExpirationTimestampMs <= now;
+        const isTooOld = token.timestamp && (now - token.timestamp) > this.config.cacheTimeout;
+        
+        // Add buffer time (5 minutes) to prevent using tokens that are about to expire
+        const bufferTime = 5 * 60 * 1000; // 5 minutes in milliseconds
+        const isAboutToExpire = token.accessTokenExpirationTimestampMs <= (now + bufferTime);
+        
+        return !isExpired && !isTooOld && !isAboutToExpire;
     }
 
     private async waitForRefresh(): Promise<void> {
@@ -301,7 +333,8 @@ export class Spotify {
             hasAuthenticatedToken: !!this.authenticatedToken,
             anonymousTokenValid: this.anonymousToken ? this.isTokenValid(this.anonymousToken) : false,
             authenticatedTokenValid: this.authenticatedToken ? this.isTokenValid(this.authenticatedToken) : false,
-            browserStatus: this.browser.getStatus()
+            browserStatus: this.browser.getStatus(),
+            tokenTrackerStats: this.tokenTracker.getStats()
         };
     }
 
@@ -319,6 +352,7 @@ export class Spotify {
             }
 
             await this.browser.close();
+            this.tokenTracker.clearAll();
             this.anonymousToken = null;
             this.authenticatedToken = null;
             this.isRefreshing = false;

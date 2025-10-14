@@ -134,4 +134,8 @@ export class TokenController {
             serviceMetrics: this.tokenService.getMetrics()
         };
     }
+
+    public getTokenTrackerStats() {
+        return this.tokenService.getMetrics().tokenTrackerStats;
+    }
 }

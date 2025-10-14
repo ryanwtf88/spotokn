@@ -50,6 +50,9 @@ class ApplicationServer {
             .get('/api/metrics', async ({ tokenController }: { tokenController: TokenController }) => {
                 return tokenController.getMetrics();
             })
+            .get('/api/token-tracker', async ({ tokenController }: { tokenController: TokenController }) => {
+                return tokenController.getTokenTrackerStats();
+            })
             .get('/api/refresh', async ({ tokenService, set }: { tokenService: Spotify, set: any }) => {
                 try {
                     const token = await tokenService.forceRefresh();
@@ -112,8 +115,8 @@ class ApplicationServer {
         const realIP = request.headers.get('x-real-ip');
         const remoteAddr = request.headers.get('x-remote-addr');
         
-        if (forwarded) {
-            return forwarded.split(',')[0].trim();
+        if (forwarded && forwarded.length > 0) {
+            return forwarded.split(',')[0]?.trim() || 'unknown';
         }
         if (realIP && realIP.length > 0) {
             return realIP;
@@ -251,6 +254,7 @@ class ApplicationServer {
                 <a href="/api/token" class="btn">Get Token</a>
                 <a href="/api/token?debug=true" class="btn">Debug Info</a>
                 <a href="/api/token?metrics=true" class="btn">Metrics</a>
+                <a href="/api/token-tracker" class="btn">Token Tracker</a>
                 <a href="/api/refresh" class="btn">Force Refresh</a>
             </div>
 
@@ -287,6 +291,7 @@ class ApplicationServer {
                 <div class="endpoint">GET /api/token?metrics=true</div>
                 <div class="endpoint">GET /api/status</div>
                 <div class="endpoint">GET /api/refresh</div>
+                <div class="endpoint">GET /api/token-tracker</div>
                 <div class="endpoint">GET /health</div>
             </div>
 
@@ -359,6 +364,7 @@ class ApplicationServer {
             logs('info', `🎯 Token API: http://localhost:${SERVER_PORT}/api/token`);
             logs('info', `📊 Status API: http://localhost:${SERVER_PORT}/api/status`);
             logs('info', `📈 Metrics API: http://localhost:${SERVER_PORT}/api/metrics`);
+            logs('info', `🔍 Token Tracker: http://localhost:${SERVER_PORT}/api/token-tracker`);
             logs('info', `🔄 Refresh API: http://localhost:${SERVER_PORT}/api/refresh`);
             logs('info', `💚 Health Check: http://localhost:${SERVER_PORT}/health`);
             logs('info', `🔧 Debug Info: http://localhost:${SERVER_PORT}/api/token?debug=true`);

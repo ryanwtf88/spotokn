@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  spotokn:
+    build: .
+    ports:
+      - "3012:3012"
+    environment:
+      - NODE_ENV=production
+      - PORT=3012
+      - HEADLESS=true
+      - PROACTIVE_REFRESH_BUFFER=300000
+      - CHECK_INTERVAL=60000
+      - MAX_RETRIES=3
+      - RETRY_DELAY=2000
+      - CACHE_TIMEOUT=3600000
+      - BROWSER_TIMEOUT=15000
+      - BROWSER_RETRY_ATTEMPTS=3
+      - BROWSER_RETRY_DELAY=2000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /ms-playwright

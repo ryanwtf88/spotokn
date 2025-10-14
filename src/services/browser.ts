@@ -166,7 +166,7 @@ export class SpotifyBrowser {
         return new Promise<SpotifyToken>((resolve, reject) => {
             (async () => {
                 let page: Page | undefined;
-                let responseReceived = false;
+                let timeout: NodeJS.Timeout | undefined;
 
                 try {
                     page = await context.newPage();
@@ -187,8 +187,8 @@ export class SpotifyBrowser {
                     page.on("response", responseHandler);
 
                     // Set up timeout
-                    const timeout = setTimeout(() => {
-                        if (!responseReceived) {
+                    timeout = setTimeout(() => {
+                        if (!(page as any).responseReceived) {
                             logs("error", "Token fetch timeout", { requestId, timeout: this.config.timeout });
                             this.cleanupPage(page);
                             reject(new Error(`Token fetch exceeded deadline of ${this.config.timeout}ms`));
@@ -202,6 +202,9 @@ export class SpotifyBrowser {
                     });
 
                 } catch (error) {
+                    if (timeout) {
+                        clearTimeout(timeout);
+                    }
                     this.cleanupPage(page);
                     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
                     logs("error", `Token fetch navigation failed`, { error: errorMessage, requestId });
@@ -291,7 +294,8 @@ export class SpotifyBrowser {
         return async (response: Response) => {
             if (!response.url().includes("/api/token")) return;
 
-            let responseReceived = true;
+            // Mark that we received a response to prevent timeout
+            (page as any).responseReceived = true;
             
             try {
                 if (!response.ok()) {
