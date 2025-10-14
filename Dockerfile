@@ -20,7 +20,7 @@ RUN bunx playwright install --with-deps chromium
 COPY . .
 
 # Expose the port the app runs on
-EXPOSE 1313
+EXPOSE 3012
 
 # Command to run the application
 CMD ["bun", "run", "src/app.ts"]
