@@ -1,0 +1,68 @@
+{
+  "name": "spotokn",
+  "version": "2.0.0",
+  "description": "High-performance Spotify token service with real-time monitoring and enhanced error handling",
+  "module": "src/app.ts",
+  "type": "module",
+  "private": true,
+  "keywords": [
+    "spotify",
+    "token",
+    "api",
+    "music",
+    "playwright",
+    "bun",
+    "elysia",
+    "real-time",
+    "monitoring"
+  ],
+  "author": "Spotokn Team",
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.0.0"
+  },
+  "scripts": {
+    "start": "bun --env-file=.env run src/app.ts",
+    "dev": "bun --env-file=.env run src/app.ts --watch",
+    "build": "bun build src/app.ts --outdir=dist --target=bun",
+    "test": "bun test",
+    "test:watch": "bun test --watch",
+    "lint": "bun run --bun tsc --noEmit",
+    "format": "bun run --bun prettier --write .",
+    "setup": "bun install",
+    "docker:build": "docker build -t spotokn .",
+    "docker:run": "docker run -p 3012:3012 --env-file=.env spotokn",
+    "docker:dev": "docker-compose up --build",
+    "docker:prod": "docker-compose -f docker-compose.yml up -d",
+    "health": "curl -f http://localhost:3012/health || exit 1",
+    "token:test": "curl -s http://localhost:3012/api/token | jq .",
+    "status": "curl -s http://localhost:3012/api/status | jq .",
+    "metrics": "curl -s http://localhost:3012/api/metrics | jq .",
+    "refresh": "curl -s http://localhost:3012/api/refresh | jq .",
+    "clean": "rm -rf dist node_modules/.cache"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "prettier": "^3.0.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@elysiajs/cron": "^1.3.0",
+    "@elysiajs/swagger": "^1.3.1",
+    "elysia": "^1.3.5",
+    "logestic": "^1.2.4",
+    "playwright": "^1.54.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ryanisnomore/spotokn.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ryanisnomore/spotokn/issues"
+  },
+  "homepage": "https://github.com/ryanisnomore/spotokn#readme"
+}
