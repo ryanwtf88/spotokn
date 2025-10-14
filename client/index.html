@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Token Service</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Spotokn</h1>
+            <p>High-performance token generation with real-time monitoring</p>
+        </div>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Quick Actions</h2>
+                <a href="/api/token" class="btn">Get Token</a>
+                <a href="/api/token?debug=true" class="btn">Debug Info</a>
+                <a href="/api/token?metrics=true" class="btn">Metrics</a>
+                <a href="/api/token?refresh=true" class="btn">Refresh Token</a>
+                <a href="/api/lavasrc/token" class="btn">LavaSrc Token</a>
+                <a href="/api/token-tracker" class="btn">Token Tracker</a>
+                <a href="/api/refresh" class="btn">Force Refresh</a>
+            </div>
+
+            <div class="card">
+                <h2>Service Status</h2>
+                <div class="status">
+                    <span>Service Status</span>
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="real-time" id="status">
+                    <div class="metric">
+                        <span>Uptime:</span>
+                        <span id="uptime">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Memory Usage:</span>
+                        <span id="memory">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Heap Used:</span>
+                        <span id="heap">Loading...</span>
+                    </div>
+                    <div class="metric">
+                        <span>Browser Status:</span>
+                        <span id="browser">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>API Endpoints</h2>
+                <div class="endpoint">GET /api/token</div>
+                <div class="endpoint">GET /api/token?debug=true</div>
+                <div class="endpoint">GET /api/token?metrics=true</div>
+                <div class="endpoint">GET /api/token?refresh=true</div>
+                <div class="endpoint">GET /api/lavasrc/token</div>
+                <div class="endpoint">GET /api/status</div>
+                <div class="endpoint">GET /api/refresh</div>
+                <div class="endpoint">GET /api/token-tracker</div>
+                <div class="endpoint">GET /health</div>
+            </div>
+
+            <div class="card">
+                <h2>Usage Examples</h2>
+                <div class="endpoint">
+                    curl http://localhost:3012/api/token
+                </div>
+                <div class="endpoint">
+                    curl -H "Cookie: sp_dc=your_cookie" http://localhost:3012/api/token
+                </div>
+                <div class="endpoint">
+                    curl http://localhost:3012/api/token?refresh=true
+                </div>
+                <div class="endpoint">
+                    curl http://localhost:3012/api/lavasrc/token
+                </div>
+                <div class="endpoint">
+                    curl http://localhost:3012/api/token?force=true
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Built with using Bun, Elysia, and Playwright</p>
+            <p>Version: Bun v<span id="bun-version">Loading...</span> | Service: spotify-token-service</p>
+        </div>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+</html>
